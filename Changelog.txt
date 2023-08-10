@@ -1,0 +1,28 @@
+v1.1
+---------------------------------------------------------------------------
+UI
+- Added a title, version number and brief description to console output.
+- Added a counter next to search statement output to show progress through
+  the query file.
+- Refined console print statemenets to provide more relevant information.
+- Enforced a standardised width to console elements.
+- All queries that encountered an error are logged and reported at the end.
+
+Output
+- If the "Individual sheets" folder does not exist, it is created.
+- Filenames now contain the date, to somewhat prevent accidental overwrites
+  (so long as the program is not run multiple times in one day).
+
+Logic
+- The larger csv with all information is now updated with each iteration of 
+  the loop through all queries, to ensure it outputs at least some data even
+  if the program crashes.
+- Added a checker incase a paper contains no date information at all, which
+  in this case will now return 0 instead of 'na/na/1/1'.
+- Blank lines in the "search queries.txt" file are now ignored by the program.
+- Papers are now sorted by year (per academic) instead of by citation count.
+
+Other
+- README.txt now contains the correct code to run "requirements.txt" with pip.
+- Requirements.txt now contains strict version informaiton on each package to
+  ensure smooth operation.

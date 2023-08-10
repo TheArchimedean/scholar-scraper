@@ -1,8 +1,8 @@
-pandas
-numpy
-scipy
-tqdm
-selenium
-beautifulsoup4
-pyodbc
-colorama
+pandas==2.0.3
+numpy==1.25.1
+scipy==1.11.1
+tqdm==4.65.0
+selenium==4.11.2
+beautifulsoup4==4.12.2
+pyodbc==4.0.39
+colorama==0.4.6
