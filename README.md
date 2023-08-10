@@ -1,7 +1,15 @@
-----------------------------SCHOLAR-SCRAPER v1.0----------------------------
-----------------------------------------------------------------------------
-----------------------------------------------------------------------------
-Author: Ted Binns
+   _____      __          __                                                     
+  / ___/_____/ /_  ____  / /___ ______      ___________________ _____  ___  _____
+  \__ \/ ___/ __ \/ __ \/ / __ `/ ___/_____/ ___/ ___/ ___/ __ `/ __ \/ _ \/ ___/
+ ___/ / /__/ / / / /_/ / / /_/ / /  /_____(__  ) /__/ /  / /_/ / /_/ /  __/ /    
+/____/\___/_/ /_/\____/_/\__,_/_/        /____/\___/_/   \__,_/ .___/\___/_/     
+                                                             /_/                 
+      v1.1
+      Created by Ted Binns
+
+      This program scrapes academic and paper details from the Google Scholar
+      profile pages associated with search queries that are entered in the
+      file "search queries.txt".
 
 
 *********IMPORTANT*********
@@ -30,7 +38,7 @@ RUNNING THE PROGRAM
 	> cd C:\Files\Projects\
 
 4. Install the required packages using pip
-	>pip install requirements.txt
+	>pip install -r requirements.txt
 
 5. Now run the Python script
 	>python3 scholar-scraper.py
@@ -42,7 +50,9 @@ RUNNING THE PROGRAM
    The console contains information on the progress of the script, including
    progress bars on paper collection for each academic.
 
-   The program will read 'ALL TASKS COMPLETE' when complete.
+   The program will read 'ALL TASKS COMPLETE' when complete, and print a list
+   of failed search queries. These failures are likely to be caused by the
+   user not having a profile on Google Scholar.
 
 
 
@@ -59,6 +69,13 @@ and papers csv for each query stored in the 'Individual sheets' folder.
 
 A larger csv with all previous files concatenated is also created and stored
 in the main directory. This contains all previous information in one place.
+After each search query, the papers and academic details are added to the 
+existing large csv, so that in the case of a crash, at least some information
+is salvaged.
+
+IMPORTANT: The program does NOT append the csv - it writes a new one each time
+	   it is run so be careful when running the script that you have an 
+	   existing copy backed up elsewhere if it is important.
 
 
 
@@ -68,4 +85,3 @@ The program will take variable amount of time to run, as it pseudo-randomly
 spends different amount of times on each web page to circumvent Google's
 bot detection. Though on average, expect the program to take 3-4 seconds
 per paper an academic has.
-
