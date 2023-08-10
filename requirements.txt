@@ -1,0 +1,8 @@
+pandas
+numpy
+scipy
+tqdm
+selenium
+beautifulsoup4
+pyodbc
+colorama
