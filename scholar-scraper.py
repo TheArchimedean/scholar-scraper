@@ -29,6 +29,7 @@ options.add_argument("--headless")
 
 from bs4 import BeautifulSoup
 
+import os
 import os.path
 
 import warnings
@@ -83,12 +84,14 @@ def format_date(s):
     s= str(s)
     n = s.count('/')
     
-    if n == 2:
+    if n == 2: #date is currently in form YYYY/mm/dd
         return s 
-    elif n == 1:
+    elif n == 1: #date is currently in form YYYY/mm
         return s + '/1'
-    else:
+    elif len(s) == 4: #date is currently in form YYYY
         return s + '/1/1'
+    else: #there is no date information
+        return ''
     
 def random_sleep(min, max):
     '''
@@ -157,7 +160,7 @@ def get_paper_table(soup):
         
     paper_df = pd.DataFrame(l) #list of dictionaries to a dataframe
     paper_df.dropna(axis=0, inplace=True, ignore_index=True)
-    print(f'{Fore.GREEN}-->{Style.RESET_ALL}', f'A dataframe of papers has been successfully stored.')
+    print(f'{Fore.GREEN}-->{Style.RESET_ALL}', f'A list of all papers has been successfully stored.')
 
     return paper_df
     
@@ -278,7 +281,7 @@ def get_paper_details(paper_df, driver):
     detailed_paper_df['Primary author'] = np.nan
     detailed_paper_df['Supporting authors'] = np.nan
     
-    for idx, paper_url in enumerate(tqdm(paper_df['Paper url'], f'{Fore.GREEN}--> Papers{Style.RESET_ALL}', leave=None)):
+    for idx, paper_url in enumerate(tqdm(paper_df['Paper url'], f'{Fore.GREEN}--> Papers{Style.RESET_ALL}', leave=None, ncols = 81)):
         driver.get(paper_url) #load webpage of paper
         random_sleep(1,6)
 
@@ -326,8 +329,6 @@ def get_paper_details(paper_df, driver):
             detailed_paper_df['Supporting authors'][idx] = np.nan
             
 
-    print(f'{Fore.GREEN}-->{Style.RESET_ALL}', "Additional details gathered.")
-
     return detailed_paper_df
 
 def format_dfs(paper_df, academic_df):
@@ -343,8 +344,6 @@ def format_dfs(paper_df, academic_df):
         formatted_paper_df (pandas df)
         formatted_academic_df (pandas df)
     '''
-
-    print(f'{Fore.GREEN}-->{Style.RESET_ALL}', "Formatting...")
 
     #Copy dataframes as to not overwrite data
     formatted_paper_df = paper_df.copy()
@@ -375,13 +374,13 @@ def format_dfs(paper_df, academic_df):
     #Changing lack of citations to correctly be nan
     formatted_paper_df[formatted_paper_df['Citations'] == '']['Citations'] = np.nan
     
-    print(f'{Fore.GREEN}-->{Style.RESET_ALL}', "Done!")
+    print(f'{Fore.GREEN}-->{Style.RESET_ALL}', "Dataframes appropriately formatted.")
     
     return formatted_paper_df, formatted_academic_df
 
 def click_show_more(driver):
     '''
-    Ensures all papers are shown on the page by scrolling to the bottom and clicking "show more" until it cannot anymore, i.e. all papers are shown
+    Ensures all papers are shown on the page by scrolling to the bottom and clicking "show more" until it cannot anymore, i.e. all papers are shown.
 
     Parameters:
         driver (selenium): web driver
@@ -400,7 +399,7 @@ def click_show_more(driver):
             show_more.click()
             time.sleep(1)
         else:
-            print(f'{Fore.GREEN}-->{Style.RESET_ALL}', "All papers loaded")
+            print(f'{Fore.GREEN}-->{Style.RESET_ALL}', "All papers have been loaded.")
             break
 
 def searches_from_file(filename):
@@ -419,9 +418,29 @@ def searches_from_file(filename):
     with open(filename) as file:
         Lines = file.readlines()
         for line in Lines:
+            if line == '\n': #skips line if it is empty
+                continue
+
             search_list.append(line.strip())
 
     return search_list
+
+def get_current_datetime():
+    '''
+    Get's the current date and time using the datetime library and returns as a string
+
+    Parameters:
+
+    Returns:
+        dt (str): string form of datetime object 
+    '''
+
+    now = datetime.now()
+
+    dt = now.strftime("%Y-%m-%d")
+
+    return dt
+
 
 def dfs_by_query(search): #add name + university 
     '''
@@ -440,14 +459,19 @@ def dfs_by_query(search): #add name + university
     url = get_scholar_search_url(search) #gets Google Scholar url for searched name
     
     driver=webdriver.Chrome(options=options) #open chromium web driver
-    print(f'{Fore.GREEN}-->{Style.RESET_ALL}', "Chrome driver successfully launched")
+    print(f'{Fore.GREEN}-->{Style.RESET_ALL}', "Chrome driver launched...")
     
     driver.get(url) #load desired url with chromium
     driver.maximize_window() #maximize window
     time.sleep(1) #wait 1s to ensure webpage fully loads
 
     #This loads to the Google Scholar seach page. The results are shown on the page with the most relevant user at the top, which we click
-    driver.find_element(By.CLASS_NAME, 'gs_ai_pho').click() 
+    driver.find_element(By.CLASS_NAME, 'gs_ai_pho').click()
+    time.sleep(1)
+
+    #This clicks the 'Year' header which loads the page sorted by year instead of citation cout
+    driver.find_element(By.LINK_TEXT, "YEAR").click()
+    time.sleep(1)
 
     #Ensure all articles are listed by scrolling to the bottom of the page and clicking "Show More"
     click_show_more(driver)
@@ -470,7 +494,7 @@ def dfs_by_query(search): #add name + university
 
     
     driver.close() #close chromium driver
-    print(f'{Fore.GREEN}-->{Style.RESET_ALL}', "Chrome driver successfully closed")
+    print(f'{Fore.GREEN}-->{Style.RESET_ALL}', "Chrome driver successfully closed.")
 
     
     # APPROPRIATE FORMATTING
@@ -478,11 +502,19 @@ def dfs_by_query(search): #add name + university
 
     
     # EXPORT DATAFRAMES TO CSV
-    directory = os.getcwd()
-    f_paper_df.to_csv(os.path.join(directory, 'Individual sheets', f'{search}_papers.csv'), index=False, index_label=False)
-    f_academic_df.to_csv(os.path.join(directory, 'Individual sheets', f'{search}_info.csv'), index=False, index_label=False)
+    directory = 'Individual sheets\\'
+    parent_dir = os.getcwd()
+    path = os.path.join(parent_dir, directory)
 
-    print(f'{Fore.GREEN}-->{Style.RESET_ALL}', "Dataframes exported to csv format.")
+    os.makedirs(path, exist_ok=True) #creates subdirectory if it doesn't already exist
+
+    current_datetime = get_current_datetime()
+
+    f_paper_df.to_csv(path + f'{search}_papers {current_datetime}.csv', index=False, index_label=False)
+    print(f'{Fore.GREEN}-->{Style.RESET_ALL}', f'Successfully exported "{search} papers {current_datetime}.csv"')
+
+    f_academic_df.to_csv(path + f'{search}_info {current_datetime}.csv', index=False, index_label=False)
+    print(f'{Fore.GREEN}-->{Style.RESET_ALL}', f'Successfully exported "{search} info {current_datetime}.csv"')
     
     return f_paper_df, f_academic_df
 
@@ -494,27 +526,60 @@ academic_df = pd.DataFrame()
 
 #Generate search list
 Searches = searches_from_file("search queries.txt")
+search_length = len(Searches)
 
-print(f'{Fore.GREEN}Beginning a search from {Style.RESET_ALL}"search queries.txt"') 
-for search in Searches:
-    print(f'{Fore.GREEN}─{Style.RESET_ALL}' * 50) 
-    print(f'Profile search: {Fore.GREEN}{search}{Style.RESET_ALL}')
-    print(f'{Fore.GREEN}─{Style.RESET_ALL}' * 50) 
+#Initlaise list of query errors
+errors = list()
+
+print(f'{Fore.BLUE}─{Style.RESET_ALL}' * 81)
+title = '''\
+   _____      __          __                                                     
+  / ___/_____/ /_  ____  / /___ ______      ___________________ _____  ___  _____
+  \__ \/ ___/ __ \/ __ \/ / __ `/ ___/_____/ ___/ ___/ ___/ __ `/ __ \/ _ \/ ___/
+ ___/ / /__/ / / / /_/ / / /_/ / /  /_____(__  ) /__/ /  / /_/ / /_/ /  __/ /    
+/____/\___/_/ /_/\____/_/\__,_/_/        /____/\___/_/   \__,_/ .___/\___/_/     
+                                                             /_/                 '''
+print(f'{Fore.BLUE}{title}{Style.RESET_ALL}')
+print(f'{Fore.BLUE}─{Style.RESET_ALL}' * 81)
+
+print(f'''\
+      {Fore.BLUE}v1.1{Style.RESET_ALL}
+      Created by Ted Binns
+      
+      This program scrapes academic and paper details from the Google Scholar
+      profile pages associated with search queries that are entered in the
+      file "search queries.txt".
+
+      For more information on using this program, please see README.txt ''') 
+
+for idx, search in enumerate(Searches):
+    print(f'{Fore.GREEN}─{Style.RESET_ALL}' * 81) 
+    print(f'Profile search {idx+1}/{search_length}: {Fore.GREEN}{search}{Style.RESET_ALL}')
+    print(f'{Fore.GREEN}─{Style.RESET_ALL}' * 81) 
     
     try:
         p_df, a_df = dfs_by_query(search)
     except:
-        print(f'{Fore.RED}Cannot find a profile matching query: {Style.RESET_ALL}{search}')
+        print(f'{Fore.RED}An error occured with this query: {Style.RESET_ALL}"{search}"')
+        errors.append(search)
         continue
     
     paper_df = pd.concat([paper_df, p_df], join='outer', axis=0)
     academic_df = pd.concat([academic_df, a_df], join='outer', axis=0)
 
-print(f'{Fore.GREEN}─{Style.RESET_ALL}' * 50) 
-print(f'{Fore.GREEN}-->{Style.RESET_ALL}', "Exporting searches_papers.csv and searches_academics.csv with all search queries...") #filename dates...
-paper_df.to_csv("searches_papers.csv", index=False, index_label=False)
-academic_df.to_csv("searches_academics.csv", index=False, index_label=False)
-print(f'{Fore.GREEN}-->{Style.RESET_ALL}', "Done!")
+    print(f'{Fore.GREEN}─{Style.RESET_ALL}' * 81) 
 
-print(f'{Fore.GREEN}ALL TASKS COMPLETE{Style.RESET_ALL}')
-print(f'{Fore.GREEN}─{Style.RESET_ALL}' * 50) 
+    current_datetime = get_current_datetime()
+    print(f'{Fore.BLUE}--> Updating main file output with all previous search queries...{Style.RESET_ALL}') 
+    paper_df.to_csv(f'all papers {current_datetime}.csv', index=False, index_label=False)
+    academic_df.to_csv(f'all academics {current_datetime}.csv', index=False, index_label=False)
+
+print(f'{Fore.GREEN}─{Style.RESET_ALL}' * 81) 
+print(f'{Fore.BLUE}─{Style.RESET_ALL}' * 81) 
+print(f'{Fore.BLUE}ALL TASKS COMPLETE{Style.RESET_ALL}')
+print(f'{Fore.BLUE}─{Style.RESET_ALL}' * 81) 
+
+if len(errors) > 0:
+    print(f'{Fore.RED}Errors occurred with the following queries:{Style.RESET_ALL}')
+    for e in errors:
+        print(f'{Fore.RED}-->{Style.RESET_ALL} {e}')
