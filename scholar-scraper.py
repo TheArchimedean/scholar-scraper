@@ -11,6 +11,8 @@ import pyodbc
 from datetime import datetime
 import hashlib
 
+import glob
+
 import time
 
 from tqdm import tqdm 
@@ -111,6 +113,19 @@ def random_sleep(min, max):
 
     time.sleep(tts)
 
+def read_existing_csv():
+    '''
+    Reads in the existing 'all academics YYYY-mm-dd.csv' file from the root directory.
+
+    Parameters:
+
+    Returns:
+        exist_df (pandas df): the existing academics database as a pandas dataframe.
+    '''
+    path = glob.glob('all academics *')
+    exist_df = pd.read_csv(path)
+    return exist_df
+
 def get_paper_table(soup):
     '''
     Get's the table of academic papers from the html data. This contains their 'Title', number of 'Citations', 'Year' of publication, and the individual 'Paper url'
@@ -164,6 +179,28 @@ def get_paper_table(soup):
 
     return paper_df
     
+def check_new_papers(old_df, new_papers):
+    '''
+    Goes through the papers dataframe before extra details have been gathered and checks if the top paper after sorting by year already exists in the old database. If so, the program terminates. 
+
+    Parameters: 
+        old_df (pandas df): the imported dataframe of existing papers
+        new_papers (pandas df): the new dataframe of (potentially) new academics papers
+    Returns:
+
+    '''
+    old_ids = list() #initialise list to store PaperID's
+    for idk in old_df.index:
+        old_ids.append(old_df['PaperID'][idx])
+
+    new_ids = new_papers[['Title']].apply(generate_id)
+
+    for id in new_ids:
+        if id in old_ids:
+            print("Most recent paper already exists in data sheet.")
+            return -1
+
+
 def get_academic_table(soup):
     '''
     Get's the academics information from the html data. This will grab their name as 'Academic', university 'Affiliation', their total number of 'Citations', 
@@ -177,7 +214,11 @@ def get_academic_table(soup):
 
     #Grabs the name and university affiliation from the top of the page (deals with capitalization, full names etc
     academic_df['Academic'][0] = soup.find("div",{"id":"gsc_prf_inw"}).text
-    academic_df['Affiliation'][0] = soup.find("a",{"class":"gsc_prf_ila"}).text
+    try:
+        academic_df['Affiliation'][0] = soup.find("a",{"class":"gsc_prf_ila"}).text
+    except:
+        print(f'{Fore.GREEN}-->{Style.RESET_ALL}', f"{Fore.RED}No affiliation found.{Style.RESET_ALL}")
+        academic_df['Affiliation'][0] = "None"
 
     #Finds the html data associated with the info panel on the right
     sidePanel = soup.find("div",{"id":"gsc_rsb_cit"})
@@ -353,11 +394,7 @@ def format_dfs(paper_df, academic_df):
     formatted_paper_df['Publication date'] = formatted_paper_df['Publication date'].apply(format_date)
     
     #Generate unique IDs
-    try:
-        formatted_paper_df['PaperID'] = formatted_paper_df[['Title', 'Publication date', 'Primary author']].sum(axis=1).apply(generate_id)
-    except:
-        formatted_paper_df['PaperID'] = formatted_paper_df[['Title', 'Publication date']].sum(axis=1).apply(generate_id) #incase of no author
-        
+    formatted_paper_df['PaperID'] = formatted_paper_df[['Title']].sum(axis=1).apply(generate_id)
     formatted_academic_df['AcademicID'] = formatted_academic_df[['Academic', 'Affiliation']].sum(axis=1).apply(generate_id)
 
     #Move IDs to first col
@@ -484,7 +521,9 @@ def dfs_by_query(search): #add name + university
     # GET PAPER TABLE 
     paper_df = get_paper_table(soup)
 
-    
+    # CHECK IF PAPERS ALREADY EXIST
+    #check_new_papers()
+
     # GET ACADEMIC TABLE 
     academic_df = get_academic_table(soup)
 

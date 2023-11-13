@@ -26,3 +26,8 @@ Other
 - README.txt now contains the correct code to run "requirements.txt" with pip.
 - Requirements.txt now contains strict version informaiton on each package to
   ensure smooth operation.
+
+v1.1.2
+---------------------------------------------------------------------------
+- Added a Try/Except to catch errors when an academic has no affiliation listed
+  on Google Scholar. 
